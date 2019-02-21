@@ -36,6 +36,10 @@ void changePrefix(NSString *sourceCodeDir, NSArray<NSString *> *ignoreDirNames,N
 void writeToFile(NSString *apiName);
 void modifyApi(NSString *sourceCodeDir,NSString *oldName,NSString *newName);
 void changeAPIName(NSString *sourceCodeDir,NSString *oldName);
+
+void generateAPIList(NSString *sourceCodeDir, NSArray<NSString *> *ignoreDirNames);
+
+
 NSString *gOutParameterName = nil;
 NSString *gSourceCodeDir = nil;
 NSInteger kLocalImageIndex = 0;
@@ -145,6 +149,7 @@ int main(int argc, const char * argv[]) {
         NSString *newClassNamePrefix = nil;
         NSString *oldAPiPrefix = nil;
         NSString *newAPiPrefix = nil;
+        BOOL changeAPIToRandom = NO;
         
         NSFileManager *fm = [NSFileManager defaultManager];
         for (NSInteger i = 1; i < arguments.count; i++) {
@@ -262,6 +267,11 @@ int main(int argc, const char * argv[]) {
                 needModifyAPIName = YES;
                 continue;
             }
+
+            if([argument isEqualToString:@"-changeAPIToRandom"]){
+                changeAPIToRandom = YES;
+                continue;
+            }
         }
         
         if (needHandleXcassets) {
@@ -338,6 +348,10 @@ int main(int argc, const char * argv[]) {
                 changePrefix(gSourceCodeDir, ignoreDirNames, oldAPiPrefix, newAPiPrefix);
             }
             printf("替换方法名前缀完成\n");
+        }
+
+        if (changeAPIToRandom) {
+            generateAPIList(gSourceCodeDir, ignoreDirNames);
         }
     }
     return 0;
@@ -1307,6 +1321,40 @@ void changePrefix(NSString *sourceCodeDir, NSArray<NSString *> *ignoreDirNames,N
                 if([hfileConten containsString:oldName]){
                     [hfileConten replaceOccurrencesOfString:oldName withString:newName options:NSCaseInsensitiveSearch range:NSMakeRange(0, hfileConten.length)];
                     [hfileConten writeToFile:hFilePath atomically:YES encoding:NSUTF8StringEncoding error:nil];
+                }
+            }
+        }
+    }
+}
+
+// 获取项目的方法列表
+void generateAPIList(NSString *sourceCodeDir, NSArray<NSString *> *ignoreDirNames) {
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSArray<NSString *> *files = [fm contentsOfDirectoryAtPath:sourceCodeDir error:nil];
+    BOOL isDirectory;
+    for (NSString *filePath in files) {
+        NSString *path = [sourceCodeDir stringByAppendingPathComponent:filePath];
+        if ([fm fileExistsAtPath:path isDirectory:&isDirectory] && isDirectory) {
+            if (![ignoreDirNames containsObject:filePath]) {
+                generateAPIList(path, ignoreDirNames);
+            }
+            continue;
+        }
+
+        NSString *fileName = filePath.lastPathComponent.stringByDeletingPathExtension;
+        NSString *fileExtension = filePath.pathExtension;
+        if ([fileExtension isEqualToString:@"swift"]) { // swift文件
+            NSError *error = nil;
+            NSMutableString *fileContent = [NSMutableString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:&error];
+            if ([fileContent containsString:@"func"]) { // swift文件中有func字符
+                NSError * error;
+                NSRegularExpression *expression = [NSRegularExpression regularExpressionWithPattern:@"(?<=func).*?(?=\\()" options:NSRegularExpressionUseUnicodeWordBoundaries error:&error];
+                NSArray<NSTextCheckingResult *> *matches = [expression matchesInString:fileContent options:0 range:NSMakeRange(0, fileContent.length)];
+                if ([matches count] > 0) { // 匹配到了function 名字
+                    [matches enumerateObjectsUsingBlock:^(NSTextCheckingResult * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+                        NSString *funcName = [fileContent substringWithRange:[obj rangeAtIndex:0]];
+                        NSLog(@"%@", funcName);
+                    }];
                 }
             }
         }
