@@ -7,6 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <CoreLocation/CoreLocation.h>
 #include <stdlib.h>
 
 // 命令行修改工程目录下所有 png 资源 hash 值
@@ -130,7 +131,7 @@ void renameFile(NSString *oldPath, NSString *newPath) {
  @return 文件路径
  */
 NSString* readPlistKey(NSString* nameString){
-    return [NSString stringWithFormat:@"/Users/hao/Documents/newProject/newMix/ProjectMix/%@.plist",nameString];
+    return [NSString stringWithFormat:@"/Users/hao/Documents/WorkSpace/iOSMixProject/ProjectMix/%@.plist",nameString];
 }
 
 /**
@@ -1473,7 +1474,6 @@ void changePrefix(NSString *sourceCodeDir, NSArray<NSString *> *ignoreDirNames,N
     }
 }
 
-
 /**
  获取文件内容
 
@@ -1516,6 +1516,66 @@ NSArray * getFuncName(NSArray* matches, NSMutableString*fileContent ){
     return resultArray;
 }
 
+/**
+ 修改混淆方法的方法名/调用方法名/参数列表
+ 
+ @param nameOrPramaList 方法名/调用方法名/参数列表
+ @param functionString 混淆方法模板
+ */
+NSMutableString * modifyMixFunc(NSString *nameOrPramaList, NSString *mixName, NSMutableString *functionString){
+    NSRegularExpression *expression = [NSRegularExpression regularExpressionWithPattern:nameOrPramaList options:0 error:nil];
+    NSArray<NSTextCheckingResult *> *matches = [expression matchesInString:functionString options:0 range:NSMakeRange(0, functionString.length)];
+    [matches enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(NSTextCheckingResult * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        [functionString replaceCharactersInRange:obj.range withString:mixName];
+    }];
+    return functionString;
+}
+
+
+/**
+ 生成混淆方法
+
+ @param randomName 随机混淆方法名
+ @param functionName 调用的方法名
+ @param pramaListString 调用参数列表
+ @return 生成混淆方法
+ */
+NSString * generateNewModifyFunction(NSString *randomName, NSString *functionName, NSString *pramaListString){
+    NSDictionary *dic = getPlist(@"MixFunctionList");
+    NSMutableString *functionString = [dic valueForKey:@"Function1"];
+    //修改混淆方法的方法名
+    functionString = modifyMixFunc(randomName, @"funcName", functionString);
+    //修改混淆方法
+    functionString = modifyMixFunc(functionName, @"changeThisName", functionString);
+    //修改调用方法的参数列表
+    functionString = modifyMixFunc(functionName, @"changeThisName", functionString);
+    return functionString;
+}
+
+//修改项目调用树
+void modifyMixFunction(NSString *sourceCodeDir, NSArray<NSString *> *ignoreDirNames){
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSArray<NSString *> *files = [fm contentsOfDirectoryAtPath:sourceCodeDir error:nil];
+    BOOL isDirectory;
+    
+    for (NSString *needChangeName in [getPlist(@"NeedMixFunctionList") valueForKey:@"FunctionName"]) {
+        for (NSString *filePath in files) {
+            NSString *path = [sourceCodeDir stringByAppendingPathComponent:filePath];
+            if ([fm fileExistsAtPath:path isDirectory:&isDirectory] && isDirectory) {
+                continue;
+            }
+            
+            NSString *randomFunctionName = randomName(3, @"Name");
+            NSString *fileName = filePath.lastPathComponent.stringByDeletingPathExtension;
+            NSString *fileExtension = filePath.pathExtension;
+            if ([fileExtension isEqualToString:@"swift"]) { // swift文件
+                NSMutableString *fileContent = getFileInfo(path);
+            }
+        }
+        
+    }
+    
+}
 
 
 
@@ -1544,10 +1604,10 @@ void generateAPIList(NSString *sourceCodeDir, NSArray<NSString *> *ignoreDirName
                     
                     NSMutableArray * funcArray = getFileInfo(fileContent).mutableCopy;
                     
-//                    [matches enumerateObjectsUsingBlock:^(NSTextCheckingResult * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-//                        NSString *funcName = [fileContent substringWithRange:[obj rangeAtIndex:0]];
-//                        NSLog(@"%@", funcName);
-//                    }];
+                    [matches enumerateObjectsUsingBlock:^(NSTextCheckingResult * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+                        NSString *funcName = [fileContent substringWithRange:[obj rangeAtIndex:0]];
+                        NSLog(@"%@", funcName);
+                    }];
                 }
             }
         }

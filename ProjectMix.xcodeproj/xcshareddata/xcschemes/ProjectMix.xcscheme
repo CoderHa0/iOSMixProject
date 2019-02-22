@@ -68,6 +68,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-changeAPIToRandom"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-modifyClassName /Users/hao/Documents/buyhoo/BuyHoo.xcodeproj"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
