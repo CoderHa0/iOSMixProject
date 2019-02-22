@@ -23,6 +23,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		7139579E221D59D000674D15 /* IgnoreAPIList.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = IgnoreAPIList.plist; sourceTree = "<group>"; };
 		B517AAA7202C500000E7D046 /* ProjectMix */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ProjectMix; sourceTree = BUILT_PRODUCTS_DIR; };
 		B517AAAA202C500000E7D046 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		B517AABB202DA02000E7D046 /* Name.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Name.plist; sourceTree = "<group>"; };
@@ -64,6 +65,7 @@
 				B517AABB202DA02000E7D046 /* Name.plist */,
 				B517AACD203175E000E7D046 /* LocalAPIList.plist */,
 				B517AACE203175F600E7D046 /* NewAPIList.plist */,
+				7139579E221D59D000674D15 /* IgnoreAPIList.plist */,
 			);
 			path = ProjectMix;
 			sourceTree = "<group>";
@@ -239,7 +241,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = RLHG37WS99;
+				DEVELOPMENT_TEAM = RG9K3ZQCL4;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -248,7 +250,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = RLHG37WS99;
+				DEVELOPMENT_TEAM = RG9K3ZQCL4;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
