@@ -251,6 +251,7 @@ int main(int argc, const char * argv[]) {
         NSString *oldAPiPrefix = nil;
         NSString *newAPiPrefix = nil;
         BOOL changeAPIToRandom = NO;
+        BOOL randomClassName = false;
         
         NSFileManager *fm = [NSFileManager defaultManager];
         for (NSInteger i = 1; i < arguments.count; i++) {
@@ -305,6 +306,9 @@ int main(int argc, const char * argv[]) {
                         return 1;
                     }
                 }
+                
+                randomClassName = !randomClassName;
+                
             }
             if ([argument isEqualToString:@"-modifyClassNamePrefix"]) {
                 NSString *string = arguments[++i];
@@ -444,7 +448,8 @@ int main(int argc, const char * argv[]) {
                 [projectContent writeToFile:projectFilePath atomically:YES encoding:NSUTF8StringEncoding error:nil];
             }
             printf("修改类名前缀完成\n");
-        }else{
+        }
+        if (randomClassName) {
             printf("开始修改类名前缀...\n");
             @autoreleasepool {
                 // 打开工程文件
@@ -1468,6 +1473,52 @@ void changePrefix(NSString *sourceCodeDir, NSArray<NSString *> *ignoreDirNames,N
     }
 }
 
+
+/**
+ 获取文件内容
+
+ @param path 文件路径
+ @return 读取文件内容字符串
+ */
+NSMutableString * getFileInfo(NSString* path){
+    NSError *error = nil;
+    return  [NSMutableString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:&error];
+}
+
+
+/**
+ 设置正则匹配规则
+
+ @param string 正则判断
+ @return 判断规则
+ */
+NSRegularExpression * setRegularExpression(NSString * string){
+    NSError * error;
+    return [NSRegularExpression regularExpressionWithPattern:string options:NSRegularExpressionUseUnicodeWordBoundaries error:&error];
+}
+
+
+/**
+ 获取文件中function名称
+
+ @param matches <NSTextCheckingResult *> CheckingResult数组
+ @param fileContent 文件内容
+ @return function名称数组
+ */
+NSArray * getFuncName(NSArray* matches, NSMutableString*fileContent ){
+    NSMutableArray *resultArray = [NSMutableArray array];
+    [matches enumerateObjectsUsingBlock:^(NSTextCheckingResult * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        NSString *funcName = [fileContent substringWithRange:[obj rangeAtIndex:0]];
+        NSLog(@"%@", funcName);
+        [resultArray addObject:funcName];
+    }];
+    
+    return resultArray;
+}
+
+
+
+
 // 获取项目的方法列表
 void generateAPIList(NSString *sourceCodeDir, NSArray<NSString *> *ignoreDirNames) {
     NSFileManager *fm = [NSFileManager defaultManager];
@@ -1485,17 +1536,18 @@ void generateAPIList(NSString *sourceCodeDir, NSArray<NSString *> *ignoreDirName
         NSString *fileName = filePath.lastPathComponent.stringByDeletingPathExtension;
         NSString *fileExtension = filePath.pathExtension;
         if ([fileExtension isEqualToString:@"swift"]) { // swift文件
-            NSError *error = nil;
-            NSMutableString *fileContent = [NSMutableString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:&error];
+            NSMutableString *fileContent = getFileInfo(path);
             if ([fileContent containsString:@"func"]) { // swift文件中有func字符
-                NSError * error;
-                NSRegularExpression *expression = [NSRegularExpression regularExpressionWithPattern:@"(?<=func).*?(?=\\()" options:NSRegularExpressionUseUnicodeWordBoundaries error:&error];
+                NSRegularExpression *expression = setRegularExpression(@"(?<=func).*?(?=\\()");
                 NSArray<NSTextCheckingResult *> *matches = [expression matchesInString:fileContent options:0 range:NSMakeRange(0, fileContent.length)];
                 if ([matches count] > 0) { // 匹配到了function 名字
-                    [matches enumerateObjectsUsingBlock:^(NSTextCheckingResult * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-                        NSString *funcName = [fileContent substringWithRange:[obj rangeAtIndex:0]];
-                        NSLog(@"%@", funcName);
-                    }];
+                    
+                    NSMutableArray * funcArray = getFileInfo(fileContent).mutableCopy;
+                    
+//                    [matches enumerateObjectsUsingBlock:^(NSTextCheckingResult * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+//                        NSString *funcName = [fileContent substringWithRange:[obj rangeAtIndex:0]];
+//                        NSLog(@"%@", funcName);
+//                    }];
                 }
             }
         }
