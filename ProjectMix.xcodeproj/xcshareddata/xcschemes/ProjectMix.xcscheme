@@ -63,7 +63,11 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "/Users/hao/Documents/buyhoo"
+            argument = "/Users/hao/Documents/Test"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-modifyFunctionInvoke"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
@@ -72,7 +76,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-modifyClassName /Users/hao/Documents/buyhoo/BuyHoo.xcodeproj"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
       </CommandLineArguments>
       <AdditionalOptions>

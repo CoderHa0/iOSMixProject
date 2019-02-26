@@ -1,14 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!--
-   NeedMixFunctionList.plist
-   ProjectMix
-
-   Created by coder 皓 on 2019/2/22.
-   Copyright (c) 2019 Journey. All rights reserved.
--->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-    <dict>
-    
-    </dict>
+<dict>
+	<key>FunctionName</key>
+	<array>
+		<string>private func bannerTapped()</string>
+		<string>private func bannerTapped(goodsId: Int64, desUri: String)</string>
+	</array>
+</dict>
 </plist>

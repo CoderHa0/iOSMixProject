@@ -37,7 +37,7 @@ void changePrefix(NSString *sourceCodeDir, NSArray<NSString *> *ignoreDirNames,N
 void writeToFile(NSString *apiName);
 void modifyApi(NSString *sourceCodeDir,NSString *oldName,NSString *newName);
 void changeAPIName(NSString *sourceCodeDir,NSString *oldName);
-
+void modifyMixFunction(NSString *sourceCodeDir, NSArray<NSString *> *ignoreDirNames);
 void generateAPIList(NSString *sourceCodeDir, NSArray<NSString *> *ignoreDirNames);
 
 
@@ -198,7 +198,7 @@ id randomArrayFunc(NSInteger count, NSInteger startNumber, NSInteger endNumber){
  @param nameString 文件名称
  @return 随机名称
  */
-NSString* randomName(NSInteger count, NSString* nameString){
+NSString* randomName(NSInteger count, NSString* nameString, BOOL isClassName){
     
     NSDictionary *dataSource = getPlist(nameString);
     
@@ -215,6 +215,9 @@ NSString* randomName(NSInteger count, NSString* nameString){
             NSArray *dataArray = [dataSource valueForKey:[dataSource.allKeys objectAtIndex:keyIndex.integerValue]];
             
             [resultString appendFormat:@"%@", [dataArray objectAtIndex:((0 +(arc4random()%(dataArray.count - 0))) / 1)]];
+        }
+        if (!isClassName) {
+            [resultString replaceCharactersInRange:NSMakeRange(0,1) withString:[[resultString substringToIndex:1] lowercaseString]];
         }
         return resultString;
     }
@@ -252,8 +255,8 @@ int main(int argc, const char * argv[]) {
         NSString *oldAPiPrefix = nil;
         NSString *newAPiPrefix = nil;
         BOOL changeAPIToRandom = NO;
-        BOOL randomClassName = false;
-        
+        BOOL randomClassName = NO;
+        BOOL modifyFunctionInvoke = NO;
         NSFileManager *fm = [NSFileManager defaultManager];
         for (NSInteger i = 1; i < arguments.count; i++) {
             NSString *argument = arguments[i];
@@ -319,15 +322,15 @@ int main(int argc, const char * argv[]) {
                     printf("修改类名前缀的工程文件参数错误。%s", string.UTF8String);
                     return 1;
                 }
-               
+                
                 string = arguments[++i];
                 NSArray<NSString *> *names = [string componentsSeparatedByString:@">"];
                 if (names.count < 2) {
-                        printf("修改类名前缀参数错误。参数示例：CC>DD，传入参数：%s\n", string.UTF8String);
-                        return 1;
+                    printf("修改类名前缀参数错误。参数示例：CC>DD，传入参数：%s\n", string.UTF8String);
+                    return 1;
                 }else{
-                oldClassNamePrefix = names[0];
-                newClassNamePrefix = names[1];
+                    oldClassNamePrefix = names[0];
+                    newClassNamePrefix = names[1];
                     if (oldClassNamePrefix.length <= 0 || newClassNamePrefix.length <= 0) {
                         printf("修改类名前缀参数错误。参数示例：CC>DD，传入参数：%s\n", string.UTF8String);
                         return 1;
@@ -389,10 +392,14 @@ int main(int argc, const char * argv[]) {
                 needModifyAPIName = YES;
                 continue;
             }
-
+            
             if([argument isEqualToString:@"-changeAPIToRandom"]){
                 changeAPIToRandom = YES;
                 continue;
+            }
+            
+            if ([argument isEqualToString:@"-modifyFunctionInvoke"]) {
+                modifyFunctionInvoke = YES;
             }
         }
         
@@ -488,9 +495,13 @@ int main(int argc, const char * argv[]) {
             }
             printf("替换方法名前缀完成\n");
         }
-
+        
         if (changeAPIToRandom) {
             generateAPIList(gSourceCodeDir, ignoreDirNames);
+        }
+        
+        if (modifyFunctionInvoke) {
+            modifyMixFunction(gSourceCodeDir, ignoreDirNames);
         }
     }
     return 0;
@@ -1180,7 +1191,7 @@ void modifyClassNamePrefix(NSMutableString *projectContent, NSString *sourceCode
                 newClassName = fileName;
             }
         }else{
-            newClassName = randomName(3, @"Name");
+            newClassName = randomName(3, @"Name", YES);
         }
         
         // 文件名 Const.ext > DDConst.ext
@@ -1476,7 +1487,7 @@ void changePrefix(NSString *sourceCodeDir, NSArray<NSString *> *ignoreDirNames,N
 
 /**
  获取文件内容
-
+ 
  @param path 文件路径
  @return 读取文件内容字符串
  */
@@ -1488,7 +1499,7 @@ NSMutableString * getFileInfo(NSString* path){
 
 /**
  设置正则匹配规则
-
+ 
  @param string 正则判断
  @return 判断规则
  */
@@ -1500,17 +1511,17 @@ NSRegularExpression * setRegularExpression(NSString * string){
 
 /**
  获取文件中function名称
-
+ 
  @param matches <NSTextCheckingResult *> CheckingResult数组
  @param fileContent 文件内容
  @return function名称数组
  */
-NSArray * getFuncName(NSArray* matches, NSMutableString*fileContent ){
+NSArray * getResultRange(NSArray* matches, NSMutableString*fileContent ){
     NSMutableArray *resultArray = [NSMutableArray array];
     [matches enumerateObjectsUsingBlock:^(NSTextCheckingResult * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
         NSString *funcName = [fileContent substringWithRange:[obj rangeAtIndex:0]];
         NSLog(@"%@", funcName);
-        [resultArray addObject:funcName];
+        [resultArray addObject:obj];
     }];
     
     return resultArray;
@@ -1528,13 +1539,17 @@ NSMutableString * modifyMixFunc(NSString *nameOrPramaList, NSString *mixName, NS
     [matches enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(NSTextCheckingResult * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
         [functionString replaceCharactersInRange:obj.range withString:mixName];
     }];
+    //    NSRange range = [functionString rangeOfString:nameOrPramaList];
+    //    if (range.location != NSNotFound) {
+    //         NSLog(@"found at location = %lu, length = %lu",(unsigned long)range.location,(unsigned long)range.length);
+    //    }
     return functionString;
 }
 
 
 /**
  生成混淆方法
-
+ 
  @param randomName 随机混淆方法名
  @param functionName 调用的方法名
  @param pramaListString 调用参数列表
@@ -1542,13 +1557,30 @@ NSMutableString * modifyMixFunc(NSString *nameOrPramaList, NSString *mixName, NS
  */
 NSString * generateNewModifyFunction(NSString *randomName, NSString *functionName, NSString *pramaListString){
     NSDictionary *dic = getPlist(@"MixFunctionList");
-    NSMutableString *functionString = [dic valueForKey:@"Function1"];
+    NSMutableString *functionString = [NSMutableString stringWithFormat:@"%@",[dic valueForKey:@"Function1"]];
     //修改混淆方法的方法名
-    functionString = modifyMixFunc(randomName, @"funcName", functionString);
+    functionString = modifyMixFunc(@"funcName", randomName, functionString);
     //修改混淆方法
-    functionString = modifyMixFunc(functionName, @"changeThisName", functionString);
-    //修改调用方法的参数列表
-    functionString = modifyMixFunc(functionName, @"changeThisName", functionString);
+    functionString = modifyMixFunc(@"changeThisName", functionName, functionString);
+    //修改声明的参数列表
+    functionString = modifyMixFunc(@"prama", pramaListString, functionString);
+    //修改调用的参数列表
+    if (![pramaListString isEqualToString:@""]) {
+        NSArray *array = [pramaListString componentsSeparatedByString:@","];
+        NSMutableString *prama = [NSMutableString string];
+        for (int index = 0; index < array.count; index++) {
+            NSArray *tempArray = [array[index] componentsSeparatedByString:@":"];
+            if (index == (array.count - 1)) {
+                [prama appendFormat:@"%@:%@",tempArray.firstObject,tempArray.firstObject];
+            }else{
+                [prama appendFormat:@"%@:%@,",tempArray.firstObject,tempArray.firstObject];
+            }
+        }
+        functionString = modifyMixFunc(@"List", prama, functionString);
+    }else{
+        functionString = modifyMixFunc(@"List", pramaListString, functionString);
+    }
+    
     return functionString;
 }
 
@@ -1558,23 +1590,82 @@ void modifyMixFunction(NSString *sourceCodeDir, NSArray<NSString *> *ignoreDirNa
     NSArray<NSString *> *files = [fm contentsOfDirectoryAtPath:sourceCodeDir error:nil];
     BOOL isDirectory;
     
-    for (NSString *needChangeName in [getPlist(@"NeedMixFunctionList") valueForKey:@"FunctionName"]) {
-        for (NSString *filePath in files) {
-            NSString *path = [sourceCodeDir stringByAppendingPathComponent:filePath];
-            if ([fm fileExistsAtPath:path isDirectory:&isDirectory] && isDirectory) {
-                continue;
+    for (NSString *filePath in files) {
+        NSString *path = [sourceCodeDir stringByAppendingPathComponent:filePath];
+        if ([fm fileExistsAtPath:path isDirectory:&isDirectory] && isDirectory) {
+            if (![ignoreDirNames containsObject:filePath]) {
+                modifyMixFunction(path, ignoreDirNames);
             }
-            
-            NSString *randomFunctionName = randomName(3, @"Name");
-            NSString *fileName = filePath.lastPathComponent.stringByDeletingPathExtension;
+            continue;
+        }
+        NSMutableString *fileContent = getFileInfo(path);
+        NSMutableDictionary *generateFunctionLocationDic = [NSMutableDictionary dictionary];
+        for (NSString *needChangeName in [getPlist(@"NeedMixFunctionList") valueForKey:@"FunctionName"]) {
             NSString *fileExtension = filePath.pathExtension;
             if ([fileExtension isEqualToString:@"swift"]) { // swift文件
-                NSMutableString *fileContent = getFileInfo(path);
-            }
+                if ([fileContent containsString:@"func"]) { // swift文件中有func字符
+                    NSArray *nameArray = [[[needChangeName componentsSeparatedByString:@"func"] lastObject] componentsSeparatedByString:@"("];
+                    NSRegularExpression *expression = setRegularExpression([NSString stringWithFormat:@"(?<=%@).*?\\)",[nameArray.firstObject stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]]]);
+                        NSString *randomFuncName =randomName(3, @"Name", NO);
+                    NSString *pramaList = [[needChangeName componentsSeparatedByString:@"("].lastObject componentsSeparatedByString:@")"].firstObject;
+                    NSMutableArray *pramaArray = [NSMutableArray array];
+                    if (![pramaList isEqualToString:@""]) {
+                        for (NSString *tempString in [pramaList componentsSeparatedByString:@","]) {
+                            [pramaArray addObject:[[tempString componentsSeparatedByString:@":"].firstObject stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]]];
+                        }
+                    }
+                    if ([fileContent rangeOfString: needChangeName].location !=NSNotFound) {
+                        [generateFunctionLocationDic setValue:randomFuncName forKey:needChangeName];
+                    }
+                    NSArray<NSTextCheckingResult *> *matches = [expression matchesInString:fileContent options:0 range:NSMakeRange(0, fileContent.length)];
+                    if ([matches count] > 0) { // 匹配到了function 名字
+                        
+                        NSMutableArray *rangeArray = getResultRange(matches, fileContent).mutableCopy;
+                        long functionLocation =[fileContent rangeOfString: needChangeName].location + [[needChangeName componentsSeparatedByString:@"("].firstObject length];
+                        NSInteger functionIndex = 0;
+                        for (NSInteger index = 0; index < rangeArray.count; index++) {
+                            NSTextCheckingResult *obj = rangeArray[index];
+                            if (functionLocation == obj.range.location) {
+                                functionIndex = index;
+                                break;
+                            }
+                        }
+                        [rangeArray removeObjectAtIndex:functionIndex];
+                        
+                        for (NSInteger index = rangeArray.count; index >0; index--) {
+                            NSTextCheckingResult * obj = rangeArray[index - 1];
+                            BOOL isPramaEqualToPramaList = NO;
+                            if ([pramaList isEqualToString:@""]) {
+                                if ([[[[fileContent substringWithRange:[obj rangeAtIndex:0]] componentsSeparatedByString:@"("].lastObject componentsSeparatedByString:@")"].firstObject isEqualToString:@""]) {
+                                    [fileContent replaceCharactersInRange:NSMakeRange([obj rangeAtIndex:0].location - [nameArray.firstObject length] + 1, [nameArray.firstObject length] -1) withString:randomFuncName];
+                                }
+                            }else{
+                                for (NSString *string in pramaArray) {
+                                    if ([[fileContent substringWithRange:[obj rangeAtIndex:0]] containsString:string]) {
+                                        isPramaEqualToPramaList = YES;
+                                    }else{
+                                        isPramaEqualToPramaList = NO;
+                                        break;
+                                    }
+                                }
+                                if (isPramaEqualToPramaList) {
+                                    [fileContent replaceCharactersInRange:NSMakeRange([obj rangeAtIndex:0].location - [nameArray.firstObject length] + 1, [nameArray.firstObject length] -1) withString:randomFuncName];
+                                }
+                            }
+                        }
+                    }
+                }
+                if ([generateFunctionLocationDic allKeys].count) {
+                    for (NSString *functionName in [generateFunctionLocationDic allKeys]) {
+                        [fileContent insertString:generateNewModifyFunction([generateFunctionLocationDic valueForKey:functionName], [[[functionName componentsSeparatedByString:@"func"] lastObject] componentsSeparatedByString:@"("].firstObject, [[functionName componentsSeparatedByString:@"("].lastObject componentsSeparatedByString:@")"].firstObject) atIndex:[fileContent rangeOfString: functionName].location - 1];
+                        [generateFunctionLocationDic removeObjectForKey:functionName];
+                        [fileContent writeToFile:path atomically:YES encoding:NSUTF8StringEncoding error:nil];
+                    }
+                }
+        }
         }
         
     }
-    
 }
 
 
@@ -1592,7 +1683,7 @@ void generateAPIList(NSString *sourceCodeDir, NSArray<NSString *> *ignoreDirName
             }
             continue;
         }
-
+        
         NSString *fileName = filePath.lastPathComponent.stringByDeletingPathExtension;
         NSString *fileExtension = filePath.pathExtension;
         if ([fileExtension isEqualToString:@"swift"]) { // swift文件
@@ -1601,9 +1692,6 @@ void generateAPIList(NSString *sourceCodeDir, NSArray<NSString *> *ignoreDirName
                 NSRegularExpression *expression = setRegularExpression(@"(?<=func).*?(?=\\()");
                 NSArray<NSTextCheckingResult *> *matches = [expression matchesInString:fileContent options:0 range:NSMakeRange(0, fileContent.length)];
                 if ([matches count] > 0) { // 匹配到了function 名字
-                    
-                    NSMutableArray * funcArray = getFileInfo(fileContent).mutableCopy;
-                    
                     [matches enumerateObjectsUsingBlock:^(NSTextCheckingResult * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
                         NSString *funcName = [fileContent substringWithRange:[obj rangeAtIndex:0]];
                         NSLog(@"%@", funcName);
@@ -1613,3 +1701,7 @@ void generateAPIList(NSString *sourceCodeDir, NSArray<NSString *> *ignoreDirName
         }
     }
 }
+
+
+
+

@@ -4,13 +4,16 @@
 <dict>
 	<key>Function1</key>
 	<string>
-void funcName(pramaList){
-    let isTrue = true
-    if (isTrue) {
-        changeThisName(pramaList)
-    }else{
+        
+private func funcName(prama){
+        let isTrue = true
+        if (isTrue) {
+        bannerTapped(List)
+        }else{
         return
+        }
     }
-}</string>
+
+</string>
 </dict>
 </plist>
